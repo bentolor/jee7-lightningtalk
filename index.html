@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Java EE 7 : A quick overview and catchup</title>
+
+    <meta name="description" content="Java EE 7: A quick overview and catchup">
+    <meta name="author" content="Benjamin Schmid | @bentolor">
+
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+
+    <link href='http://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/lt.css" id="theme">
+
+    <!-- For syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <!-- If the query includes 'print-pdf', use the PDF print sheet -->
+    <script>
+        document.write('<link rel="stylesheet" href="css/print/' + ( window.location.search.match(/print-pdf/gi) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">');
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="lib/js/html5shiv.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+
+<div class="reveal">
+
+<!-- Any section element inside of this container is displayed as a slide -->
+<div class="slides">
+
+<section>
+    <h1 style="margin: 50px 0 .3em">Java EE 7</h1>
+
+    <h3 style="font-size:1.2em;margin-bottom:2em">Overview and catchup</h3>
+
+    <p style="text-align: right">
+        <a href="https://twitter.com/bentolor">@bentolor</a>
+    </p>
+</section>
+
+<section>
+    <h2>Table of contents</h2>
+
+    <div id="table-of-contents"></div>
+</section>
+
+<section >
+
+    <section>
+        <h2 class="slide-header">Java EE history &amp; timelines</h2>
+        <ul>
+            <li>Java EE 5 <em>(May 11, 2006)</em></li>
+            <li>Java EE 6 <em>(Dec 10, 2009)</em></li>
+            <li><b>Java EE 7</b> <em>(May 28, 2013)</em></li>
+            <li>Java EE 8 <em>(~ Q3/2016)</em></li>
+        </ul>
+
+    </section>
+
+
+    <section>
+      <h2 class="slide-header">JEE 5 - Ease of Development</h2>
+      <ul>
+          <li>Annoations </li>
+          <li>JPA</li>
+          <li>EJB 3.0 (@Entity POJO beans)</li>
+          <li>XML Binding (JAXB)</li>
+          <li>XML Web Services (JAX-WS)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="slide-header">JEE 6 - Ease of Deployment</h2>
+      <ul>
+          <li>API Pruning: JAX-RPC -&gt; JAX-WS, EJB -&gt; JPA, JAXR, JSR88</li>
+          <li>Web Profile</li>
+          <li>EJBlite (No interfaces, JavaSE bootrapable)</li>
+          <li>Dependency Injection</li>
+          <li>Bean Validation</li>
+          <li>RESTful Services</li>
+          <li>Servlet Annotations</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="slide-header">JEE 7 - Productivity, HTML5, Enterprise Demands</h2>
+
+      <ul class="twocol">
+        <li class="left">Web Sockets</li>
+        <li class="left">JSON / REST</li>
+        <li class="left">Servlet NIO</li>
+        <li class="left">Simplified JMS</li>
+        <li class="left">Batch Applications</li>
+        <li class="left">More annotated POJO &amp; less boilerplate</li>
+
+        <li class="right">Concurrency Utilities</li>
+        <li class="right">API Pruning: EJB CMP/BMP, JAX-RPC, Deployment API</li>
+        <li class="right">Multi-tenancy (Cloud)</li>
+      </ul>
+
+    </section>
+
+</section>
+
+
+<section>
+
+  <!-- app servers -->
+  <section>
+      <h2 class="slide-header" style="font-size:3em;margin-top: 50px">Application servers</h2>
+  </section>
+
+  <section>
+    <h2 class="slide-header">JEE 7 implementations</h2>
+    <h5>as of 10/2014</h5>
+    <ul>
+          <li>GlassFish Server Open Source Edition 4.0 (Oracle, CDDL)	</li>
+          <li>Wildfly 8.x (JBoss, LGPL) </li>
+          <li>TMAX JEUS 8 (TmaxSoft, Korea, proprietary)</li>
+      </ul>
+  </section>
+
+</section>
+
+
+<section>
+    <h2 class="slide-header" style="font-size:3em;margin-top: 50px">Features at glance</h2>
+</section>
+
+<!-- WEBSOCKET -->
+<section>
+    <section>
+        <h2 class="slide-header">Websocket Server</h2>
+
+        <pre><code class="java small">@ServerEndpoint(value="/websocket")
+public class MyEndpoint {
+
+    @OnMessage
+    public void message(String message, Session client) {
+        for (Session peer : client.getOpenSessions()) {
+            peer.getBasicRemote().sendText(message);
+        }
+    }
+
+    @OnMessage(maxMessageSize=6)
+    public ByteBuffer echoBinary(ByteBuffer data) throws IOException {
+        return data;
+    }
+
+    @OnClose
+    public void onClose(CloseReason reason) {
+        System.out.println("Closed: " + reason.getCloseCode()
+                + ", " + reason.getReasonPhrase());
+    }
+
+    @OnError
+    public void onError(Throwable t) {  t.printStackTrace();   }
+}</code></pre>
+    </section>
+
+    <section>
+        <h2 class="slide-header">Websocket Client</h2>
+
+        <pre><code class="java small">@ClientEndpoint
+public class MyClient {
+    @OnOpen
+    public void onOpen(Session session) {
+        try {
+            session.getBasicRemote().sendText("Duke");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    @OnMessage
+    public void processMessage(String message) {
+        System.out.println("Received message in client: " + message);
+    }
+}</code></pre>
+
+        <!--<p class="tgap">Example with parameter (Type inferred!)<p>
+        <pre><code class="java">Arrays.asList( "a", "b", "d" ).forEach( e -> System.out.println( e ) );</code></pre>-->
+    </section>
+
+</section>
+
+
+<!-- JSON -->
+<section>
+  <section>
+    <h2 class="slide-header">Create JSON</h2>
+
+    <pre><code class="java">JsonObject jsonObject = Json.createObjectBuilder()
+    .add("title", "The Matrix")
+    .add("year", 1999)
+    .add("cast", Json.createArrayBuilder()
+            .add("Keanu Reaves")
+            .add("Laurence Fishburne")
+            .add("Carrie-Anne Moss"))
+    .build();
+try (JsonWriter writer = Json.createWriter(out)) {
+  writer.write(jsonObject);
+}</code></pre>
+  </section>
+
+  <section>
+      <h2 class="slide-header">Read JSON</h2>
+      <pre><code class="java">JsonReader jsonReader = Json.createReader(...);
+JsonObject json = jsonReader.readObject();
+
+assertTrue(json.containsKey("title"));
+assertEquals("The Matrix", json.getString("title"));
+assertEquals(1999, json.getInt("year"));
+  </code></pre>
+  </section>
+</section>
+
+
+<!-- Concurrency -->
+<section>
+  <section>
+    <h2 class="slide-header">Concurrency</h2>
+    <ul>
+      <li>Managing own threads in JEE is problematic</li>
+      <li>JEE7 introduces own, managed versions of <code>java.util.concurrent</code> utilities</li>
+    </ul>
+
+  </section>
+
+  <section>
+      <h2 class="slide-header">Concurrency - Examples</h2>
+
+      <h5>Start <em>managed</em> threads</h5>
+      <pre><code class="java">ManagedThreadFactory factory =
+   (ManagedThreadFactory) ctx.lookup("java:comp/DefaultManagedThreadFactory");
+Thread thread = factory.newThread(new MyTask(2)); // getting ManageableThread
+thread.start();</code></pre>
+
+      <div class="fragment tgap">
+      <h5><em>Managed</em> executor services</h5>
+      <pre><code class="java">@Resource(name = "DefaultManagedScheduledExecutorService")
+ManagedScheduledExecutorService executor;
+
+ScheduledFuture&lt;?&gt; future = executor
+  .scheduleAtFixedRate(new MyRunnableTask(5), 2, 3, TimeUnit.SECONDS);
+</code></pre>
+      </div>
+  </section>
+
+  <section>
+    <h2>Concurrency - In servlets</h2>
+    <pre><code class="java">@WebServlet(urlPatterns = "/MyAsyncServlet", asyncSupported = true)
+    public class MyAsyncServlet extends HttpServlet {
+
+    @Resource(lookup="java:comp/DefaultManagedExecutorService")
+    ManagedExecutorService executor;
+
+    protected void processRequest(...) throws ... {
+      AsyncContext ac = request.startAsync();
+      ac.addListener(new AsyncListener() {
+          public void onComplete(AsyncEvent event) throws IOException {}
+          public void onTimeout(AsyncEvent event) throws IOException {}
+          public void onError(AsyncEvent event) throws IOException {}
+          public void onStartAsync(AsyncEvent event) throws IOException {}
+      });
+
+      executor.submit(new MyAsyncService(ac));
+    }</code></pre>
+  </section>
+
+</section>
+
+
+
+
+<section>
+  <section>
+      <h2 class="slide-header">Bean Validation</h2>
+      <ul>
+        <li>Support for methods (parameters, return values)</li>
+        <li>Default enable for: annotated, all, none</li>
+        <li>Veto support for packages / classes:
+          <pre><code class="java">@Vetoed
+public class NonProcessedBean {  }
+
+// package-info.java
+@Vetoed
+package com.nonprocessed.package;</code></pre>
+        </li>
+      </ul>
+
+  </section>
+
+  <section>
+      <h2 class="slide-header">Bean Validation - Method Constraints</h2>
+
+  <pre><code class="java">@RequestScoped
+public class MyBean {
+
+    public String sayHello(@Size(max = 3) String name) {   }
+
+    @Future       // return value constraint
+    public Date showDate(boolean inFuture) {   }
+
+    public String showList(@NotNull @Size(min = 1, max = 3) List<String> list,
+                           @NotNull String prefix) {
+        // ...
+    }
+
+    public void saveZip(@ZipCode String zip) {  }
+    public void saveZipIndia(@ZipCode(country = ZipCode.INDIA) String zip) {  }
+}  </code></pre>
+  </section>
+
+  <section>
+      <h2 class="slide-header">Bean Validation</h2>
+
+  <pre><code class="java">
+// Each tests throws ConstraintViolationException with
+// message constraint class and affected class member name
+
+@Test
+public void methodSizeTooLong() {
+  bean.sayHello("Duke");
+}
+
+@Test
+public void wrongReturnValue() {
+  bean.showDate(false);
+}
+
+@Test
+public void multipleParametersNullSecondParameter() {
+  List&lt;String&gt; list = new ArrayList&lt;&gt;();
+  list.add("bar");
+  bean.showList(list, null);
+}</code></pre>
+  </section>
+
+</section>
+
+
+
+<!-- Batch Processing -->
+<section>
+  <section>
+    <h2 class="slide-header">Batch Processing</h2>
+    <p>
+      Batch processing is execution of "jobs" which are
+      suitable for non-interactive, bulk-oriented and
+      long-running tasks
+    </p>
+
+    <img src="img/batch-processing.png"/>
+
+    <p>
+      Supports job/step/chunk <strong>listener, workflow definitions, concurrent steps, flow decisions</strong>
+    </p>
+
+  </section>
+
+  <section>
+      <h2 class="slide-header">Defining batch jobs</h2>
+
+      <pre><code class="java">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;job id="myJob" xmlns="http://xmlns.jcp.org/xml/ns/javaee" version="1.0"&gt;
+    &lt;flow id="flow1" next="step3"&gt;
+        &lt;step id="step1" next="step2"&gt;
+            &lt;batchlet ref="myBatchlet1"/&gt;
+        &lt;/step&gt;
+        &lt;step id="step2" &gt;
+            &lt;chunk item-count="3"&gt;
+                &lt;reader ref="myItemReader"/&gt;
+                &lt;writer ref="myItemWriter"/&gt;
+            &lt;/chunk&gt;
+        &lt;/step&gt;
+    &lt;/flow&gt;
+    &lt;step id="step3" &gt;
+        &lt;batchlet ref="myBatchlet2"/&gt;
+    &lt;/step&gt;
+&lt;/job&gt;</code></pre>
+  </section>
+
+  <section>
+      <h2 class="slide-header">Starting / Controlling jobs</h2>
+
+      <pre><code class="java">JobOperator jobOperator = BatchRuntime.getJobOperator();
+        Long executionId = jobOperator.start("myJob", new Properties());
+        JobExecution jobExecution = jobOperator.getJobExecution(executionId);
+
+        // ...
+
+        List<StepExecution> stepExecutions = jobOperator.getStepExecutions(executionId);
+        for (StepExecution stepExecution : stepExecutions) {
+            if (stepExecution.getStepName().equals("myStep")) {
+              // ...
+            }
+        }
+
+        assertEquals(jobExecution.getBatchStatus(), BatchStatus.COMPLETED);
+    }</code></pre>
+  </section>
+</section>
+
+
+
+<!-- CDI -->
+<section>
+  <section>
+    <h2 class="slide-header">Dependency injection</h2>
+    <pre><code class="java small">@Stateless
+@TransactionManagement(TransactionManagementType.BEAN)
+public class SimpleGreetingBean {
+
+    // built-in values
+    @Inject HttpSession httpSession;
+    @Inject ServletContext servletContext;
+    @Inject Principal principal;
+
+    // custom beans
+    @Inject Greeting greeting;
+
+    public String greet(String name) {
+        System.out.println("session id: " + httpSession.getId());
+        System.out.println("context path: " + servletContext.getContextPath());
+        System.out.println("security principal: " + principal.getName());
+
+        return "Hello " + name;
+    }
+
+}</code></pre>
+  </section>
+
+  <section>
+    <h2 class="slide-header">Dependency injection - Features</h2>
+    <ul>
+      <li>Scopes:
+        <ul>
+          <li><code>@ApplicationScoped</code>, <code>@RequestScoped</code>, <code>@SessionScoped</code>, <code>@Singleton</code></li>
+        </ul>
+        </li>
+
+      <li><code>@Interceptor</code>s allow to intercept method invocations &amp; lifecycle events on Java EE managed classes</li>
+      <li>Wiring <em>events</em> via <code>@Observer</code> annotation</li>
+      <li><code>@Alternative</code> beans for DI with priority control. Explicit select in <em>beans archive</em>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2 class="slide-header">Dependency injection - Features II</h2>
+    <p><code>@Decorator</code>s:</p>
+      <pre><code class="java small">public interface Greeting {
+    public String greet(String name);
+}</code></pre>
+<p>decorating calls..</p>
+<pre><code class="java small">@Decorator
+public class MyDecorator implements Greeting {
+    @Inject @Delegate @Any Greeting greeting;
+
+    public String greet(String name) {
+        return greeting.greet(name + " very much!");
+    }
+}</code></pre>
+  </section>
+
+</section>
+
+
+<section>
+  <h2 class="slide-header">EJB lite</h2>
+  <p>EJB Lite is a subset of the features provided by EJB offering
+<ul>
+  <li>Stateless, stateful, and singleton session beans</li>
+  <li>No EJB interfaces req'd</li>
+  <li>Interceptors</li>
+  <li>Container/bean-managed transactions</li>
+  <li>Declarative/programmatic security</li>
+</ul>
+
+<p>EJB lite can be directly deployed within  <code>.jar</code> archives. </p>
+</section>
+
+
+<section>
+    <h2 class="slide-header">Miscellanious</h2>
+
+    <h5>Multi-Tenancy</h5>
+    <p>JPA 2.1 introduces Table discriminator</p>
+
+    <h5>Default resources</h5>
+    <p>Default resources for JSM, Concurrency, Context Service i.e. <code>java:comp/DefaultJMSConnectionFactory</code></p>
+
+    <h5>Servlet NIO</h5>
+     <p>Support for non-blocking programming model for servlets, i.e.
+    <code>ReadListener.onDataAvailable()</code> and <code>WriteListener.onWritePossible()</code></p>
+</section>
+
+
+<section>
+    <h2 class="slide-header">Credits & Resources</h2>
+    <ul>
+        <li><a href="https://github.com/javaee-samples/javaee7-samples">Code Samples: JEE 7 Samples (Arun Gupta)</a></li>
+        <!--<li><a href=""></a></li>-->
+    </ul>
+</section>
+
+<section>
+    <h3 style="font-size:3em;margin-top:30px;margin-bottom:.5em">Thank you :)</h3>
+</section>
+
+</div>
+
+</div>
+<!--<iframe src="http://ghbtns.com/github-btn.html?user=bentolor&repo=jee7-lightningtalk&type=watch&count=true" allowtransparency="true" frameborder="0" scrolling="0" width="110" height="20" style="position: absolute; top: 20px; left: 20px; z-index: 9999"></iframe>
+<a href="https://github.com/bentolor/jee7-lightningtalk" style="position: absolute; top: 0; right: 0; z-index: 9999">
+<img style="border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub">
+</a>-->
+
+<script src="lib/js/head.min.js"></script>
+<script src="js/reveal.min.js"></script>
+
+<script>
+
+    // Full list of configuration options available here:
+    // https://github.com/hakimel/reveal.js#configuration
+    Reveal.initialize({
+        controls: true,
+        progress: true,
+        history: true,
+        rollingLinks: false,
+        slideNumber: true,
+
+        theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+        transition: 'linear', // default/cube/page/concave/linear(2d)
+        mouseWheel: true,
+        parallaxBackgroundImage: 'img/background.jpg',
+        parallaxBackgroundSize: '3543px 2362px', //  1229px // CSS syntax, e.g. "2100px 900px"
+
+        // Optional libraries used to extend on reveal.js
+        dependencies: [
+            { src: 'lib/js/highlight.js', async: true, callback: function () {
+                window.hljs.initHighlightingOnLoad();
+            } },
+            { src: 'lib/js/classList.js', condition: function () {
+                return !document.body.classList;
+            } },
+            { src: 'lib/js/showdown.js', condition: function () {
+                return !!document.querySelector('[data-markdown]');
+            } },
+            { src: 'lib/js/data-markdown.js', condition: function () {
+                return !!document.querySelector('[data-markdown]');
+            } },
+            { src: 'plugin/zoom-js/zoom.js', condition: function () {
+                return !!document.body.classList;
+            } },
+            { src: '/socket.io/socket.io.js', async: true, condition: function () {
+                return window.location.host === 'localhost:1947';
+            } },
+            { src: 'plugin/speakernotes/client.js', async: true, condition: function () {
+                return window.location.host === 'localhost:1947';
+            } }
+        ]
+    });
+
+</script>
+<script src="js/zepto.min.js"></script>
+<script>
+    Zepto(function ($) {
+
+        var tableOfContents = $('#table-of-contents');
+        var tableList = $('<ol />')
+
+        $('.slide-header').each(function (index) {
+            var _self = $(this),
+                    hash = '#/' + _self.closest('section').index();
+
+            tableList.append([
+                '<li>',
+                        '<a href="' + hash + '">',
+                _self.text(),
+                '</a>',
+                '</li>'
+            ].join(''));
+
+        });
+
+        tableOfContents.html(tableList);
+    });
+</script>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-54268066-1', 'auto');
+  ga('send', 'pageview');
+</script>
+</body>
+</html>
