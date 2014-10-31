@@ -136,152 +136,8 @@
     <h2 class="slide-header" style="font-size:3em;margin-top: 50px">Features at glance</h2>
 </section>
 
-<!-- WEBSOCKET -->
-<section>
-    <section>
-        <h2 class="slide-header">Websocket Server</h2>
 
-        <pre><code class="java small">@ServerEndpoint(value="/websocket")
-public class MyEndpoint {
-
-    @OnMessage
-    public void message(String message, Session client) {
-        for (Session peer : client.getOpenSessions()) {
-            peer.getBasicRemote().sendText(message);
-        }
-    }
-
-    @OnMessage(maxMessageSize=6)
-    public ByteBuffer echoBinary(ByteBuffer data) throws IOException {
-        return data;
-    }
-
-    @OnClose
-    public void onClose(CloseReason reason) {
-        System.out.println("Closed: " + reason.getCloseCode()
-                + ", " + reason.getReasonPhrase());
-    }
-
-    @OnError
-    public void onError(Throwable t) {  t.printStackTrace();   }
-}</code></pre>
-    </section>
-
-    <section>
-        <h2 class="slide-header">Websocket Client</h2>
-
-        <pre><code class="java small">@ClientEndpoint
-public class MyClient {
-    @OnOpen
-    public void onOpen(Session session) {
-        try {
-            session.getBasicRemote().sendText("Duke");
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    @OnMessage
-    public void processMessage(String message) {
-        System.out.println("Received message in client: " + message);
-    }
-}</code></pre>
-
-        <!--<p class="tgap">Example with parameter (Type inferred!)<p>
-        <pre><code class="java">Arrays.asList( "a", "b", "d" ).forEach( e -> System.out.println( e ) );</code></pre>-->
-    </section>
-
-</section>
-
-
-<!-- JSON -->
-<section>
-  <section>
-    <h2 class="slide-header">Create JSON</h2>
-
-    <pre><code class="java">JsonObject jsonObject = Json.createObjectBuilder()
-    .add("title", "The Matrix")
-    .add("year", 1999)
-    .add("cast", Json.createArrayBuilder()
-            .add("Keanu Reaves")
-            .add("Laurence Fishburne")
-            .add("Carrie-Anne Moss"))
-    .build();
-try (JsonWriter writer = Json.createWriter(out)) {
-  writer.write(jsonObject);
-}</code></pre>
-  </section>
-
-  <section>
-      <h2 class="slide-header">Read JSON</h2>
-      <pre><code class="java">JsonReader jsonReader = Json.createReader(...);
-JsonObject json = jsonReader.readObject();
-
-assertTrue(json.containsKey("title"));
-assertEquals("The Matrix", json.getString("title"));
-assertEquals(1999, json.getInt("year"));
-  </code></pre>
-  </section>
-</section>
-
-
-<!-- Concurrency -->
-<section>
-  <section>
-    <h2 class="slide-header">Concurrency</h2>
-    <ul>
-      <li>Managing own threads in JEE is problematic</li>
-      <li>JEE7 introduces own, managed versions of <code>java.util.concurrent</code> utilities</li>
-    </ul>
-
-  </section>
-
-  <section>
-      <h2 class="slide-header">Concurrency - Examples</h2>
-
-      <h5>Start <em>managed</em> threads</h5>
-      <pre><code class="java">ManagedThreadFactory factory =
-   (ManagedThreadFactory) ctx.lookup("java:comp/DefaultManagedThreadFactory");
-Thread thread = factory.newThread(new MyTask(2)); // getting ManageableThread
-thread.start();</code></pre>
-
-      <div class="fragment tgap">
-      <h5><em>Managed</em> executor services</h5>
-      <pre><code class="java">@Resource(name = "DefaultManagedScheduledExecutorService")
-ManagedScheduledExecutorService executor;
-
-ScheduledFuture&lt;?&gt; future = executor
-  .scheduleAtFixedRate(new MyRunnableTask(5), 2, 3, TimeUnit.SECONDS);
-</code></pre>
-      </div>
-  </section>
-
-  <section>
-    <h2>Concurrency - In servlets</h2>
-    <pre><code class="java">@WebServlet(urlPatterns = "/MyAsyncServlet", asyncSupported = true)
-    public class MyAsyncServlet extends HttpServlet {
-
-    @Resource(lookup="java:comp/DefaultManagedExecutorService")
-    ManagedExecutorService executor;
-
-    protected void processRequest(...) throws ... {
-      AsyncContext ac = request.startAsync();
-      ac.addListener(new AsyncListener() {
-          public void onComplete(AsyncEvent event) throws IOException {}
-          public void onTimeout(AsyncEvent event) throws IOException {}
-          public void onError(AsyncEvent event) throws IOException {}
-          public void onStartAsync(AsyncEvent event) throws IOException {}
-      });
-
-      executor.submit(new MyAsyncService(ac));
-    }</code></pre>
-  </section>
-
-</section>
-
-
-
-
+<!-- Bean Validation -->
 <section>
   <section>
       <h2 class="slide-header">Bean Validation</h2>
@@ -347,6 +203,215 @@ public void multipleParametersNullSecondParameter() {
   </section>
 
 </section>
+
+
+<!-- JSON -->
+<section>
+
+  <section>
+      <h2 class="slide-header" style="font-size:3em;margin-top: 50px">JSON &amp; RESTful Services</h2>
+  </section>
+
+
+  <section>
+    <h2 class="slide-header">Create JSON</h2>
+
+    <pre><code class="java">JsonObject jsonObject = Json.createObjectBuilder()
+    .add("title", "The Matrix")
+    .add("year", 1999)
+    .add("cast", Json.createArrayBuilder()
+            .add("Keanu Reaves")
+            .add("Laurence Fishburne")
+            .add("Carrie-Anne Moss"))
+    .build();
+try (JsonWriter writer = Json.createWriter(out)) {
+  writer.write(jsonObject);
+}</code></pre>
+  </section>
+
+  <section>
+      <h2 class="slide-header">Read JSON</h2>
+      <pre><code class="java">JsonReader jsonReader = Json.createReader(...);
+JsonObject json = jsonReader.readObject();
+
+assertTrue(json.containsKey("title"));
+assertEquals("The Matrix", json.getString("title"));
+assertEquals(1999, json.getInt("year"));
+  </code></pre>
+  </section>
+
+  <section>
+    <h2 class="slide-header">RESTful Services with JAX-RS</h2>
+
+    <pre><code class="java small">@ApplicationPath("webresources")
+public class MyApplication extends Application { }</code></pre>
+    <pre><code class="java small">@Path("/fruit")
+public class MyResource {
+
+  @GET
+  @Path("{name}")
+  @Produces({"application/json", "application/xml"})
+  public String get(@PathParam("name")String payload) {
+      return Database.get(payload);
+  }
+
+  @POST
+  public void post(String payload) {  Database.add(payload);  }
+
+  @PUT
+  public void put(String payload) {   Database.add(payload);  }
+
+  @DELETE
+  @Path("{name}")
+  public void delete(@PathParam("name")String payload) {
+      Database.delete(payload);
+  }
+}</code></pre>
+  </section>
+
+  <section>
+    <h2 class="slide-header">JAX-RS with Bean Validation</h2>
+
+    <pre><code class="java small">@Path("/endpoint")
+public class MyResource {
+
+    @POST
+    @Produces(MediaType.TEXT_PLAIN)
+    public String post(@Size(min = 3) String payload) {
+        return payload;
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    public void post2(@NotNull @FormParam("name")       String name,
+                      @Min(1) @Max(10)@FormParam("age") int age) {
+    }
+}</code></pre>
+  </section>
+
+</section>
+
+
+
+
+
+<!-- WEBSOCKET -->
+<section>
+    <section>
+        <h2 class="slide-header">Websocket Server</h2>
+
+        <pre><code class="java small">@ServerEndpoint(value="/websocket")
+public class MyEndpoint {
+
+    @OnMessage
+    public void message(String message, Session client) {
+        for (Session peer : client.getOpenSessions()) {
+            peer.getBasicRemote().sendText(message);
+        }
+    }
+
+    @OnMessage(maxMessageSize=6)
+    public ByteBuffer echoBinary(ByteBuffer data) throws IOException {
+        return data;
+    }
+
+    @OnClose
+    public void onClose(CloseReason reason) {
+        System.out.println("Closed: " + reason.getCloseCode()
+                + ", " + reason.getReasonPhrase());
+    }
+
+    @OnError
+    public void onError(Throwable t) {  t.printStackTrace();   }
+}</code></pre>
+    </section>
+
+    <section>
+        <h2 class="slide-header">Websocket Client</h2>
+
+        <pre><code class="java small">@ClientEndpoint
+public class MyClient {
+    @OnOpen
+    public void onOpen(Session session) {
+        try {
+            session.getBasicRemote().sendText("Duke");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    @OnMessage
+    public void processMessage(String message) {
+        System.out.println("Received message in client: " + message);
+    }
+}</code></pre>
+
+        <!--<p class="tgap">Example with parameter (Type inferred!)<p>
+        <pre><code class="java">Arrays.asList( "a", "b", "d" ).forEach( e -> System.out.println( e ) );</code></pre>-->
+    </section>
+
+</section>
+
+
+
+
+</section>
+
+
+<!-- Concurrency -->
+<section>
+  <section>
+    <h2 class="slide-header">Concurrency</h2>
+    <ul>
+      <li>Managing own threads in JEE is problematic</li>
+      <li>JEE7 introduces own, managed versions of <code>java.util.concurrent</code> utilities</li>
+    </ul>
+
+  </section>
+
+  <section>
+      <h2 class="slide-header">Concurrency - Examples</h2>
+
+      <h5>Start <em>managed</em> threads</h5>
+      <pre><code class="java">ManagedThreadFactory factory =
+   (ManagedThreadFactory) ctx.lookup("java:comp/DefaultManagedThreadFactory");
+Thread thread = factory.newThread(new MyTask(2)); // getting ManageableThread
+thread.start();</code></pre>
+
+      <div class="fragment tgap">
+      <h5><em>Managed</em> executor services</h5>
+      <pre><code class="java">@Resource(name = "DefaultManagedScheduledExecutorService")
+ManagedScheduledExecutorService executor;
+
+ScheduledFuture&lt;?&gt; future = executor
+  .scheduleAtFixedRate(new MyRunnableTask(5), 2, 3, TimeUnit.SECONDS);
+</code></pre>
+      </div>
+  </section>
+
+  <section>
+    <h2>Concurrency - In servlets</h2>
+    <pre><code class="java">@WebServlet(urlPatterns = "/MyAsyncServlet", asyncSupported = true)
+    public class MyAsyncServlet extends HttpServlet {
+
+    @Resource(lookup="java:comp/DefaultManagedExecutorService")
+    ManagedExecutorService executor;
+
+    protected void processRequest(...) throws ... {
+      AsyncContext ac = request.startAsync();
+      ac.addListener(new AsyncListener() {
+          public void onComplete(AsyncEvent event) throws IOException {}
+          public void onTimeout(AsyncEvent event) throws IOException {}
+          public void onError(AsyncEvent event) throws IOException {}
+          public void onStartAsync(AsyncEvent event) throws IOException {}
+      });
+
+      executor.submit(new MyAsyncService(ac));
+    }</code></pre>
+  </section>
+
+</section>
+
 
 
 
@@ -441,23 +506,24 @@ public class SimpleGreetingBean {
   </section>
 
   <section>
-    <h2 class="slide-header">Dependency injection - Features</h2>
+    <h2 class="slide-header">Dependency injection (CDI)</h2>
     <ul>
       <li>Scopes:
         <ul>
-          <li><code>@ApplicationScoped</code>, <code>@RequestScoped</code>, <code>@SessionScoped</code>, <code>@Singleton</code></li>
+          <li><code>@ApplicationScoped</code>, <code>@RequestScoped</code>, <br />
+              <code>@SessionScoped</code>, <code>@Singleton</code></li>
         </ul>
         </li>
 
-      <li><code>@Interceptor</code>s allow to intercept method invocations &amp; lifecycle events on Java EE managed classes</li>
+      <li><code>@Interceptor</code>s intercepts any method invocations / lifecycle events on JEE managed classes</li>
+      <li>Similar <code>@Decorator</code> intercept business methods </li>
       <li>Wiring <em>events</em> via <code>@Observer</code> annotation</li>
-      <li><code>@Alternative</code> beans for DI with priority control. Explicit select in <em>beans archive</em>.</li>
+      <li><code>@Alternative</code> beans for DI with priority control. <br />(Scope: <em>beans archive</em>)</li>
     </ul>
   </section>
 
   <section>
-    <h2 class="slide-header">Dependency injection - Features II</h2>
-    <p><code>@Decorator</code>s:</p>
+    <h2 class="slide-header">CDI - <code>@Decorator</code>s</h2>
       <pre><code class="java small">public interface Greeting {
     public String greet(String name);
 }</code></pre>
@@ -469,6 +535,33 @@ public class MyDecorator implements Greeting {
     public String greet(String name) {
         return greeting.greet(name + " very much!");
     }
+}</code></pre>
+  </section>
+
+  <section>
+    <h2 class="slide-header">CDI - Event wiring</h2>
+      <pre><code class="java small">public interface EventReceiver {
+	String getGreet();
+}</code></pre>
+      <pre><code class="java small">@SessionScoped
+public class GreetingReceiver implements EventReceiver, Serializable {
+  private String greet = "Willkommen";
+
+  void receive(@Observes String greet) {
+  	this.greet = greet;
+  }
+
+  public String getGreet() {
+  	return greet;
+  }
+}</code></pre>
+      <pre><code class="java small">public class GreetingSender implements EventSender {
+  @Inject
+  private Event<String> event;
+
+  public void send(String message) {
+  	event.fire(message);
+  }
 }</code></pre>
   </section>
 
